@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADH Admin Panel</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--or:#f97316;--ord:#ea580c;--card:#18181b;--bdr:#27272a;--ibg:#09090b;--grn:#22c55e;--red:#ef4444;--blu:#3b82f6}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f0f;color:#e4e4e7;min-height:100vh;display:flex}
+
+    /* SIDEBAR */
+    .sidebar{width:230px;min-height:100vh;background:var(--card);border-right:1px solid var(--bdr);display:flex;flex-direction:column;flex-shrink:0}
+    .slogo{padding:18px 16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px}
+    .sbadge{background:var(--or);color:#fff;font-weight:800;font-size:12px;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+    .sname{font-weight:700;font-size:14px;color:#fff}
+    .ssub{font-size:11px;color:#71717a}
+    .snav{padding:10px 6px;flex:1;overflow-y:auto}
+    .slbl{font-size:10px;font-weight:600;color:#52525b;text-transform:uppercase;letter-spacing:.08em;padding:10px 8px 4px}
+    .nbtn{width:100%;text-align:left;padding:8px 10px;border-radius:7px;border:none;background:transparent;color:#a1a1aa;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;transition:all .15s}
+    .nbtn:hover{background:#27272a;color:#fff}
+    .nbtn.on{background:var(--or);color:#fff;font-weight:600}
+    .sapi{padding:12px;border-top:1px solid var(--bdr)}
+    .apilbl{font-size:11px;color:#71717a;margin-bottom:5px}
+    .apiinp{width:100%;background:var(--ibg);border:1px solid var(--bdr);color:#e4e4e7;padding:6px 8px;border-radius:6px;font-size:11px}
+    .apist{font-size:11px;margin-top:4px}
+
+    /* MAIN */
+    .main{flex:1;padding:24px;overflow-y:auto;min-height:100vh}
+
+    /* PAGE HEADER */
+    .phdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+    .ptitle{font-size:20px;font-weight:700;color:#fff}
+    .psub{font-size:12px;color:#71717a;margin-top:2px}
+
+    /* BUTTONS */
+    .btn{padding:8px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+    .bprim{background:var(--or);color:#fff}.bprim:hover{background:var(--ord)}
+    .bgrn{background:#14532d;color:var(--grn)}.bgrn:hover{background:#166534}
+    .bred{background:#450a0a;color:var(--red)}.bred:hover{background:#3f0c0c}
+    .bghst{background:#27272a;color:#a1a1aa}.bghst:hover{background:#3f3f46;color:#fff}
+    .bsm{padding:5px 9px;font-size:11px}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    /* CARDS */
+    .card{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:18px;margin-bottom:16px}
+    .sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+    .scard{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:16px}
+    .snum{font-size:28px;font-weight:800;color:#fff}
+    .slabel{font-size:12px;color:#71717a;margin-top:2px}
+
+    /* TABLE */
+    .twrap{overflow-x:auto;border-radius:10px;border:1px solid var(--bdr)}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    thead{background:#27272a}
+    th{padding:10px 12px;text-align:left;font-weight:600;color:#a1a1aa;font-size:11px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+    td{padding:9px 12px;border-top:1px solid var(--bdr);vertical-align:middle}
+    tr:hover td{background:#1c1c1f}
+    .badge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+    .bor{background:#431407;color:var(--or)}
+    .bgrn2{background:#14532d;color:var(--grn)}
+    .bred2{background:#450a0a;color:var(--red)}
+    .pimg{width:40px;height:40px;border-radius:7px;object-fit:cover;border:1px solid var(--bdr);background:#27272a}
+    .pimgbox{width:40px;height:40px;border-radius:7px;background:#27272a;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+
+    /* FORM */
+    .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .fgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+    .ffull{grid-column:1/-1}
+    .fg{display:flex;flex-direction:column;gap:5px}
+    .flbl{font-size:11px;font-weight:600;color:#a1a1aa;text-transform:uppercase;letter-spacing:.04em}
+    .finp{background:var(--ibg);border:1px solid var(--bdr);color:#e4e4e7;padding:8px 10px;border-radius:7px;font-size:13px;transition:border .15s;width:100%}
+    .finp:focus{outline:none;border-color:var(--or)}
+    .finp::placeholder{color:#52525b}
+    select.finp{appearance:none;cursor:pointer}
+    textarea.finp{resize:vertical;min-height:80px}
+
+    /* MODAL */
+    .moverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+    .modal{background:#18181b;border:1px solid var(--bdr);border-radius:14px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+    .mhdr{padding:18px 20px 0;display:flex;align-items:center;justify-content:space-between}
+    .mtitle{font-size:15px;font-weight:700;color:#fff}
+    .mclose{background:#27272a;border:none;color:#a1a1aa;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:14px}
+    .mclose:hover{background:var(--red);color:#fff}
+    .mbody{padding:18px 20px}
+    .mfoot{padding:0 20px 18px;display:flex;gap:8px;justify-content:flex-end}
+
+    /* LOGIN */
+    .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0f0f;width:100%}
+    .login-card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:32px;width:360px}
+    .login-logo{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+
+    /* ALERT */
+    .alert{position:fixed;bottom:20px;right:20px;padding:11px 16px;border-radius:9px;font-size:12px;font-weight:600;z-index:200;animation:slin .25s ease;max-width:300px}
+    .asucc{background:#14532d;color:var(--grn);border:1px solid #166534}
+    .aerr{background:#450a0a;color:var(--red);border:1px solid #7f1d1d}
+    @keyframes slin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+    .section{display:none}.section.on{display:block}
+    .hidden{display:none!important}
+    .spin{width:16px;height:16px;border:2px solid #27272a;border-top-color:var(--or);border-radius:50%;animation:sp .6s linear infinite;display:inline-block}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .empty{padding:36px;text-align:center;color:#52525b}
+    .swrap{position:relative}
+    .sinp{background:var(--ibg);border:1px solid var(--bdr);color:#e4e4e7;padding:7px 10px 7px 32px;border-radius:7px;font-size:12px;width:220px}
+    .sinp:focus{outline:none;border-color:var(--or)}
+    .sico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#52525b;font-size:12px}
+    .frow{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+    @media(max-width:600px){.fgrid,.fgrid3{grid-template-columns:1fr}.sidebar{display:none}}
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN PAGE ══════════════ -->
+<div id="loginPage" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="sbadge" style="width:44px;height:44px;font-size:14px;border-radius:10px">ADH</div>
+      <div>
+        <div style="font-weight:700;font-size:16px;color:#fff">ADH Admin Panel</div>
+        <div style="font-size:12px;color:#71717a">Hardware Store Management</div>
+      </div>
+    </div>
+    <div id="loginErr" class="hidden" style="background:#450a0a;color:var(--red);border:1px solid #7f1d1d;padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:14px"></div>
+    <div class="fg" style="margin-bottom:12px">
+      <label class="flbl">Phone Number</label>
+      <input class="finp" id="lPhone" type="tel" placeholder="Admin phone number" value="9999999999" />
+    </div>
+    <div class="fg" style="margin-bottom:18px">
+      <label class="flbl">Password</label>
+      <input class="finp" id="lPass" type="password" placeholder="Password" value="admin123" />
+    </div>
+    <div class="fg" style="margin-bottom:18px">
+      <label class="flbl">Backend URL</label>
+      <input class="finp" id="lApi" value="http://localhost:5000/api" />
+    </div>
+    <button class="btn bprim" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()" id="loginBtn">Login to Admin Panel</button>
+    <p style="font-size:11px;color:#52525b;margin-top:12px;text-align:center">Default: phone 9999999999 · password admin123</p>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<div id="appWrap" class="hidden" style="display:flex;width:100%">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="slogo">
+    <div class="sbadge">ADH</div>
+    <div><div class="sname">ADH Admin</div><div class="ssub">Management Panel</div></div>
+  </div>
+  <div class="snav">
+    <div class="slbl">Main</div>
+    <button class="nbtn on"  onclick="go('dashboard')">📊 Dashboard</button>
+    <button class="nbtn"     onclick="go('products')">📦 Products</button>
+    <button class="nbtn"     onclick="go('addProduct')">➕ Add Product</button>
+    <div class="slbl" style="margin-top:6px">Manage</div>
+    <button class="nbtn"     onclick="go('categories')">🗂️ Categories</button>
+    <button class="nbtn"     onclick="go('orders')">🧾 Orders</button>
+    <button class="nbtn"     onclick="go('users')">👥 Users</button>
+  </div>
+  <div class="sapi">
+    <div class="apilbl">Connected to</div>
+    <input class="apiinp" id="apiDisplay" readonly />
+    <div class="apist" id="apiSt">⬤ Checking...</div>
+    <button class="btn bghst bsm" style="margin-top:6px;width:100%" onclick="ping()">🔄 Test Connection</button>
+    <button class="btn bred bsm" style="margin-top:5px;width:100%" onclick="logout()">🚪 Logout</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div id="sec-dashboard" class="section on">
+    <div class="phdr"><div><div class="ptitle">Dashboard</div><div class="psub">Store overview</div></div><button class="btn bghst" onclick="loadDash()">🔄 Refresh</button></div>
+    <div class="sgrid">
+      <div class="scard"><div style="font-size:22px;margin-bottom:6px">📦</div><div class="snum" id="dProd">—</div><div class="slabel">Products</div></div>
+      <div class="scard"><div style="font-size:22px;margin-bottom:6px">🗂️</div><div class="snum" id="dCat">—</div><div class="slabel">Categories</div></div>
+      <div class="scard"><div style="font-size:22px;margin-bottom:6px">🧾</div><div class="snum" id="dOrd">—</div><div class="slabel">Orders</div></div>
+      <div class="scard"><div style="font-size:22px;margin-bottom:6px">👥</div><div class="snum" id="dUsr">—</div><div class="slabel">Users</div></div>
+      <div class="scard"><div style="font-size:22px;margin-bottom:6px">💰</div><div class="snum" id="dRev">—</div><div class="slabel">Revenue</div></div>
+    </div>
+    <div class="card"><div style="font-weight:700;margin-bottom:12px;color:#fff">Recent Products</div><div id="dRecent" class="ssub">Loading…</div></div>
+  </div>
+
+  <!-- PRODUCTS LIST -->
+  <div id="sec-products" class="section">
+    <div class="phdr">
+      <div><div class="ptitle">Products</div><div class="psub" id="pCount">Loading…</div></div>
+      <button class="btn bprim" onclick="go('addProduct')">➕ Add Product</button>
+    </div>
+    <div class="frow">
+      <div class="swrap"><span class="sico">🔍</span><input class="sinp" placeholder="Search…" id="pSearch" oninput="filterProds()" /></div>
+      <select class="finp" id="fCat" onchange="onCatFilter()" style="width:160px"><option value="">All Categories</option></select>
+      <select class="finp" id="fSub" onchange="filterProds()" style="width:160px"><option value="">All Subcategories</option></select>
+    </div>
+    <div class="twrap">
+      <table><thead><tr><th>Product</th><th>Brand</th><th>Subcategory</th><th>Size</th><th>Price</th><th>Stock</th><th>Actions</th></tr></thead>
+      <tbody id="pTable"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT PRODUCT -->
+  <div id="sec-addProduct" class="section">
+    <div class="phdr">
+      <div><div class="ptitle" id="fTitle">Add New Product</div><div class="psub">Fill all required fields</div></div>
+      <button class="btn bghst" onclick="go('products')">← Back</button>
+    </div>
+    <div class="card">
+      <input type="hidden" id="eid" />
+      <div class="fgrid" style="margin-bottom:12px">
+        <div class="fg ffull"><label class="flbl">Product Name *</label><input class="finp" id="fName" placeholder="e.g. Greenply BWR Ply 19mm" /></div>
+        <div class="fg"><label class="flbl">Category *</label><select class="finp" id="fCatSel" onchange="loadSubsForm()"><option value="">Select…</option></select></div>
+        <div class="fg"><label class="flbl">Subcategory *</label><select class="finp" id="fSubSel"><option value="">Select…</option></select></div>
+        <div class="fg"><label class="flbl">Brand</label><input class="finp" id="fBrand" placeholder="e.g. Greenply, Berger" /></div>
+        <div class="fg"><label class="flbl">Size / Volume</label><input class="finp" id="fSize" placeholder="e.g. 19mm | 4 Litre | 78×36 inch" /></div>
+        <div class="fg"><label class="flbl">Price ₹ *</label><input class="finp" id="fPrice" type="number" placeholder="e.g. 3200" /></div>
+        <div class="fg"><label class="flbl">Stock</label><input class="finp" id="fStock" type="number" placeholder="e.g. 50" value="10" /></div>
+        <div class="fg ffull"><label class="flbl">Image URL</label><input class="finp" id="fImg" placeholder="Paste direct image URL" oninput="prevImg()" /></div>
+        <div class="fg ffull"><label class="flbl">Description</label><textarea class="finp" id="fDesc" placeholder="Brief product description…"></textarea></div>
+      </div>
+      <div id="imgPrev" class="hidden" style="margin-bottom:14px"><div class="flbl" style="margin-bottom:6px">Preview</div><img id="imgEl" style="height:110px;border-radius:9px;object-fit:cover;border:1px solid var(--bdr)" /></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn bprim" onclick="saveProd()" id="saveBtn">💾 Save Product</button>
+        <button class="btn bghst" onclick="clearForm()">✕ Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div id="sec-categories" class="section">
+    <div class="phdr"><div><div class="ptitle">Categories</div></div><button class="btn bghst" onclick="loadCats()">🔄 Refresh</button></div>
+    <div id="catContent" class="ssub">Loading…</div>
+  </div>
+
+  <!-- ORDERS -->
+  <div id="sec-orders" class="section">
+    <div class="phdr"><div><div class="ptitle">Orders</div><div class="psub">All customer orders</div></div><button class="btn bghst" onclick="loadOrders()">🔄 Refresh</button></div>
+    <div class="twrap"><table>
+      <thead><tr><th>#</th><th>Date</th><th>Customer</th><th>Phone</th><th>Amount</th><th>Status</th><th>Update Status</th></tr></thead>
+      <tbody id="oTable"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- USERS -->
+  <div id="sec-users" class="section">
+    <div class="phdr"><div><div class="ptitle">Users</div></div></div>
+    <div class="twrap"><table>
+      <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+      <tbody id="uTable"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+    </table></div>
+  </div>
+
+</div><!-- end main -->
+</div><!-- end appWrap -->
+
+<!-- STOCK MODAL -->
+<div id="stockMod" class="moverlay hidden">
+  <div class="modal">
+    <div class="mhdr"><div class="mtitle">Update Stock</div><button class="mclose" onclick="closeMod('stockMod')">✕</button></div>
+    <div class="mbody">
+      <input type="hidden" id="smId" />
+      <div class="fg"><label class="flbl">New Stock Quantity</label><input class="finp" id="smVal" type="number" min="0" /></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn bghst" onclick="closeMod('stockMod')">Cancel</button>
+      <button class="btn bprim" onclick="doStockUpdate()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALERT -->
+<div id="alertEl" class="hidden"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let API = '';
+let TOKEN = '';
+let allProds = [], allCats = [], allSubs = [], subsForFilter = [];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const ax = (method, url, data) => axios({ method, url: API + url, data, headers: { Authorization: `Bearer ${TOKEN}` } });
+
+function showAlert(msg, type='success') {
+  const el = $('alertEl');
+  el.className = 'alert ' + (type === 'success' ? 'asucc' : 'aerr');
+  el.textContent = (type==='success'?'✓ ':'✕ ') + msg;
+  el.classList.remove('hidden');
+  clearTimeout(window._at);
+  window._at = setTimeout(() => el.classList.add('hidden'), 3500);
+}
+
+function closeMod(id) { $(id).classList.add('hidden'); }
+function fmt(n) { return parseFloat(n).toLocaleString('en-IN'); }
+function fmtDate(d) { return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const phone = $('lPhone').value.trim();
+  const pass  = $('lPass').value;
+  API = $('lApi').value.trim();
+  $('loginErr').classList.add('hidden');
+  const btn = $('loginBtn');
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  try {
+    const r = await axios.post(API + '/auth/login', { phone, password: pass });
+    if (r.data.user.role !== 'admin') throw new Error('Not an admin account.');
+    TOKEN = r.data.token;
+    localStorage.setItem('adh_admin_token', TOKEN);
+    localStorage.setItem('adh_admin_api', API);
+    $('apiDisplay').value = API;
+    $('loginPage').classList.add('hidden');
+    $('appWrap').classList.remove('hidden');
+    loadDash();
+    ping();
+    loadCatsGlobal();
+  } catch(e) {
+    $('loginErr').textContent = e.response?.data?.message || e.message || 'Login failed.';
+    $('loginErr').classList.remove('hidden');
+  } finally { btn.disabled = false; btn.textContent = 'Login to Admin Panel'; }
+}
+
+function logout() {
+  TOKEN = ''; API = '';
+  localStorage.removeItem('adh_admin_token');
+  localStorage.removeItem('adh_admin_api');
+  $('appWrap').classList.add('hidden');
+  $('loginPage').classList.remove('hidden');
+}
+
+// Auto-login if token saved
+window.addEventListener('DOMContentLoaded', () => {
+  const t = localStorage.getItem('adh_admin_token');
+  const a = localStorage.getItem('adh_admin_api');
+  if (t && a) {
+    TOKEN = t; API = a;
+    $('apiDisplay').value = a;
+    $('lApi').value = a;
+    $('loginPage').classList.add('hidden');
+    $('appWrap').classList.remove('hidden');
+    loadDash(); ping(); loadCatsGlobal();
+  }
+});
+
+// ── CONNECTION ────────────────────────────────────────────────────────────────
+async function ping() {
+  const el = $('apiSt');
+  el.innerHTML = '<span class="spin"></span>';
+  try {
+    await axios.get(API + '/health');
+    el.innerHTML = '<span style="color:var(--grn)">⬤</span> Connected ✓';
+  } catch {
+    el.innerHTML = '<span style="color:var(--red)">⬤</span> Disconnected';
+  }
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function go(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.nbtn').forEach(b => b.classList.remove('on'));
+  $('sec-' + name).classList.add('on');
+  // Highlight sidebar button
+  document.querySelectorAll('.nbtn').forEach(b => { if(b.textContent.toLowerCase().includes(name.toLowerCase().substring(0,4))) b.classList.add('on'); });
+  const map = { dashboard: loadDash, products: loadProds, categories: loadCats, orders: loadOrders, users: loadUsers, addProduct: () => loadCatsGlobal() };
+  map[name]?.();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+async function loadDash() {
+  try {
+    const r = await ax('get', '/admin/stats');
+    const s = r.data.data;
+    $('dProd').textContent = s.total_products;
+    $('dCat').textContent  = s.total_categories;
+    $('dOrd').textContent  = s.total_orders;
+    $('dUsr').textContent  = s.total_users;
+    $('dRev').textContent  = '₹' + fmt(s.revenue);
+  } catch { }
+
+  try {
+    const r = await ax('get', '/products');
+    const prods = (r.data.data || r.data).slice(0, 6);
+    $('dRecent').innerHTML = prods.map(p => `
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bdr)">
+        <div class="pimgbox">📦</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+          <div style="font-size:11px;color:#71717a">${p.brand||''} · ${p.subcategory_name||p.subcategory_slug||''}</div>
+        </div>
+        <div style="font-weight:700;color:var(--or);white-space:nowrap">₹${fmt(p.price)}</div>
+      </div>`).join('');
+  } catch { $('dRecent').textContent = 'Could not load recent products.'; }
+}
+
+// ── PRODUCTS ──────────────────────────────────────────────────────────────────
+async function loadProds() {
+  $('pTable').innerHTML = `<tr><td colspan="7" class="empty"><span class="spin"></span></td></tr>`;
+  try {
+    const [pr, cr] = await Promise.all([ax('get','/products'), ax('get','/categories')]);
+    allProds = pr.data.data || pr.data;
+    allCats  = cr.data.data || cr.data;
+    $('pCount').textContent = allProds.length + ' products';
+    // Fill cat filter
+    $('fCat').innerHTML = '<option value="">All Categories</option>' +
+      allCats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    renderProds(allProds);
+  } catch { showAlert('Failed to load products.','error'); }
+}
+
+async function onCatFilter() {
+  const catId = $('fCat').value;
+  $('fSub').innerHTML = '<option value="">All Subcategories</option>';
+  if (catId) {
+    const cat = allCats.find(c => c.id == catId);
+    if (cat) {
+      try {
+        const r = await ax('get', '/subcategories/' + cat.slug);
+        const subs = r.data.data || r.data;
+        $('fSub').innerHTML = '<option value="">All Subcategories</option>' +
+          subs.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+      } catch {}
+    }
+  }
+  filterProds();
+}
+
+function filterProds() {
+  const q   = $('pSearch').value.toLowerCase();
+  const cat = $('fCat').value;
+  const sub = $('fSub').value;
+  let list  = allProds;
+  if (q)   list = list.filter(p => p.name.toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q));
+  if (sub) list = list.filter(p => String(p.subcategory_id) === sub);
+  else if (cat) {
+    const cat_obj = allCats.find(c => c.id == cat);
+    if (cat_obj) list = list.filter(p => p.category_slug === cat_obj.slug);
+  }
+  renderProds(list);
+}
+
+function renderProds(list) {
+  if (!list.length) { $('pTable').innerHTML = `<tr><td colspan="7"><div class="empty">No products found</div></td></tr>`; return; }
+  $('pTable').innerHTML = list.map(p => `
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:9px">
+        ${p.image ? `<img src="${p.image}" class="pimg" onerror="this.style.display='none'" />` : `<div class="pimgbox">📦</div>`}
+        <div>
+          <div style="font-weight:600;color:#fff;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+          <div style="font-size:11px;color:#52525b">#${p.id}${p.size ? ' · '+p.size : ''}</div>
+        </div>
+      </div></td>
+      <td style="color:#a1a1aa">${p.brand||'—'}</td>
+      <td><span class="badge bor">${p.subcategory_name||p.subcategory_slug||'—'}</span></td>
+      <td style="color:#a1a1aa;font-size:11px">${p.size||'—'}</td>
+      <td><strong style="color:var(--or)">₹${fmt(p.price)}</strong></td>
+      <td><span class="badge ${p.stock>10?'bgrn2':p.stock>0?'bor':'bred2'}">${p.stock}</span></td>
+      <td><div style="display:flex;gap:5px">
+        <button class="btn bghst bsm" onclick="editProd(${p.id})">✏️ Edit</button>
+        <button class="btn bghst bsm" onclick="openStock(${p.id},${p.stock})">📦</button>
+        <button class="btn bred bsm" onclick="delProd(${p.id},'${p.name.replace(/'/g,"\\'")}')" >🗑️</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+async function delProd(id, name) {
+  if (!confirm(`Delete "${name}"?\nThis cannot be undone.`)) return;
+  try {
+    await ax('delete', '/admin/products/' + id);
+    showAlert('Product deleted.','success');
+    loadProds();
+  } catch(e) { showAlert(e.response?.data?.message||'Delete failed.','error'); }
+}
+
+async function editProd(id) {
+  try {
+    const r = await ax('get', '/products/' + id);
+    const p = r.data.data;
+    await loadCatsGlobal();
+    $('eid').value   = p.id;
+    $('fName').value = p.name;
+    $('fBrand').value= p.brand||'';
+    $('fSize').value = p.size||'';
+    $('fPrice').value= p.price;
+    $('fStock').value= p.stock;
+    $('fImg').value  = p.image||'';
+    $('fDesc').value = p.description||'';
+    $('fTitle').textContent = 'Edit Product';
+    // Set category then sub
+    const cat = allCats.find(c => c.slug === p.category_slug);
+    if (cat) {
+      $('fCatSel').value = cat.id;
+      await loadSubsForm();
+      $('fSubSel').value = p.subcategory_id;
+    }
+    prevImg();
+    go('addProduct');
+  } catch { showAlert('Could not load product.','error'); }
+}
+
+// ── FORM ──────────────────────────────────────────────────────────────────────
+async function loadCatsGlobal() {
+  if (allCats.length) { populateCatSel(); return; }
+  try {
+    const r = await ax('get', '/categories');
+    allCats = r.data.data || r.data;
+    populateCatSel();
+  } catch {}
+}
+
+function populateCatSel() {
+  const cur = $('fCatSel').value;
+  $('fCatSel').innerHTML = '<option value="">Select Category</option>' +
+    allCats.map(c => `<option value="${c.id}" data-slug="${c.slug}">${c.name}</option>`).join('');
+  if (cur) $('fCatSel').value = cur;
+}
+
+async function loadSubsForm() {
+  const opt = $('fCatSel').selectedOptions[0];
+  if (!opt || !opt.dataset.slug) return;
+  try {
+    const r = await ax('get', '/subcategories/' + opt.dataset.slug);
+    const subs = r.data.data || r.data;
+    const cur = $('fSubSel').value;
+    $('fSubSel').innerHTML = '<option value="">Select Subcategory</option>' +
+      subs.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    if (cur) $('fSubSel').value = cur;
+  } catch {}
+}
+
+function prevImg() {
+  const url = $('fImg').value;
+  if (url) { $('imgEl').src = url; $('imgPrev').classList.remove('hidden'); }
+  else $('imgPrev').classList.add('hidden');
+}
+
+async function saveProd() {
+  const id  = $('eid').value;
+  const sub = $('fSubSel').value;
+  const nm  = $('fName').value.trim();
+  const pr  = $('fPrice').value;
+  if (!nm || !sub || !pr) { showAlert('Name, Subcategory and Price are required.','error'); return; }
+
+  const body = { subcategory_id:sub, name:nm, brand:$('fBrand').value.trim()||null,
+    size:$('fSize').value.trim()||null, price:pr, stock:$('fStock').value||0,
+    image:$('fImg').value.trim()||null, description:$('fDesc').value.trim()||null };
+
+  const btn = $('saveBtn');
+  btn.disabled=true; btn.textContent='Saving…';
+  try {
+    if (id) {
+      await ax('put', '/admin/products/'+id, body);
+      showAlert('Product updated!','success');
+    } else {
+      await ax('post', '/admin/products', body);
+      showAlert('Product added!','success');
+    }
+    clearForm();
+    go('products');
+  } catch(e) { showAlert(e.response?.data?.message||'Save failed.','error'); }
+  finally { btn.disabled=false; btn.textContent='💾 Save Product'; }
+}
+
+function clearForm() {
+  ['eid','fName','fBrand','fSize','fPrice','fImg','fDesc'].forEach(x => $(x).value='');
+  $('fStock').value='10';
+  $('fCatSel').value='';
+  $('fSubSel').innerHTML='<option value="">Select Subcategory</option>';
+  $('fTitle').textContent='Add New Product';
+  $('imgPrev').classList.add('hidden');
+}
+
+// ── STOCK MODAL ───────────────────────────────────────────────────────────────
+function openStock(id, cur) { $('smId').value=id; $('smVal').value=cur; $('stockMod').classList.remove('hidden'); }
+async function doStockUpdate() {
+  try {
+    await ax('put', '/admin/products/'+$('smId').value, { stock: $('smVal').value });
+    showAlert('Stock updated!','success');
+    closeMod('stockMod');
+    loadProds();
+  } catch { showAlert('Stock update failed.','error'); }
+}
+
+// ── CATEGORIES ────────────────────────────────────────────────────────────────
+async function loadCats() {
+  $('catContent').innerHTML = '<span class="spin"></span>';
+  try {
+    const r = await ax('get', '/categories');
+    const cats = r.data.data || r.data;
+    const html = await Promise.all(cats.map(async cat => {
+      let subs = [];
+      try { const sr = await ax('get','/subcategories/'+cat.slug); subs = sr.data.data||sr.data; } catch {}
+      return `<div class="card" style="margin-bottom:12px">
+        <div style="font-weight:700;color:#fff;margin-bottom:8px">${cat.name} <span style="color:#52525b;font-weight:400;font-size:12px">(${subs.length} subcategories)</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px">${subs.map(s=>`<span class="badge bor" style="padding:4px 12px">${s.name}</span>`).join('')||'<span style="color:#52525b;font-size:12px">No subcategories</span>'}</div>
+      </div>`;
+    }));
+    $('catContent').innerHTML = html.join('');
+  } catch { showAlert('Failed to load categories.','error'); }
+}
+
+// ── ORDERS ────────────────────────────────────────────────────────────────────
+async function loadOrders() {
+  $('oTable').innerHTML = `<tr><td colspan="7" class="empty"><span class="spin"></span></td></tr>`;
+  try {
+    const r = await ax('get', '/admin/orders');
+    const orders = r.data.data || r.data;
+    if (!orders.length) { $('oTable').innerHTML=`<tr><td colspan="7"><div class="empty">📦 No orders yet</div></td></tr>`; return; }
+    const sc = { Pending:'bor', Processing:'bor', Shipped:'bor', Delivered:'bgrn2', Cancelled:'bred2' };
+    $('oTable').innerHTML = orders.map(o => `<tr>
+      <td><strong>#${o.id}</strong></td>
+      <td style="color:#a1a1aa;font-size:11px">${fmtDate(o.created_at)}</td>
+      <td>${o.user_name||'User #'+o.user_id}</td>
+      <td style="color:#71717a">${o.phone||'—'}</td>
+      <td><strong style="color:var(--or)">₹${fmt(o.total_amount)}</strong></td>
+      <td><span class="badge ${sc[o.status]||'bor'}">${o.status}</span></td>
+      <td><select class="finp" style="font-size:11px;padding:4px 8px" onchange="updOrdStatus(${o.id},this.value)">
+        ${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option${o.status===s?' selected':''}>${s}</option>`).join('')}
+      </select></td>
+    </tr>`).join('');
+  } catch { $('oTable').innerHTML=`<tr><td colspan="7"><div class="empty">Could not load orders</div></td></tr>`; }
+}
+
+async function updOrdStatus(id, status) {
+  try { await ax('put','/admin/orders/'+id+'/status',{status}); showAlert('Status updated!','success'); }
+  catch { showAlert('Update failed.','error'); }
+}
+
+// ── USERS ─────────────────────────────────────────────────────────────────────
+async function loadUsers() {
+  $('uTable').innerHTML = `<tr><td colspan="6" class="empty"><span class="spin"></span></td></tr>`;
+  try {
+    const r = await ax('get', '/admin/users');
+    const users = r.data.data || r.data;
+    $('uTable').innerHTML = users.map(u => `<tr>
+      <td style="color:#52525b">#${u.id}</td>
+      <td><strong>${u.name||'—'}</strong></td>
+      <td>${u.phone||'—'}</td>
+      <td style="color:#71717a">${u.email||'—'}</td>
+      <td><span class="badge ${u.role==='admin'?'bor':'bgrn2'}">${u.role}</span></td>
+      <td style="color:#71717a;font-size:11px">${fmtDate(u.created_at)}</td>
+    </tr>`).join('');
+  } catch { $('uTable').innerHTML=`<tr><td colspan="6"><div class="empty">Could not load users</div></td></tr>`; }
+}
+</script>
+</body>
+</html>

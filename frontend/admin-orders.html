@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ADH Admin — Order Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #09090b; font-family: 'Segoe UI', system-ui, sans-serif; }
+    .card-enter { animation: slideIn 0.25s ease; }
+    @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:700; }
+    .spinner { border:3px solid #3f3f46; border-top-color:#f97316; border-radius:50%; width:24px; height:24px; animation:spin 0.7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    ::-webkit-scrollbar { width:4px; height:4px; }
+    ::-webkit-scrollbar-track { background:#18181b; }
+    ::-webkit-scrollbar-thumb { background:#3f3f46; border-radius:4px; }
+  </style>
+</head>
+<body class="min-h-screen text-white">
+
+<!-- ── Navbar ───────────────────────────────────────────────────────────── -->
+<nav class="sticky top-0 z-50 bg-zinc-900 border-b border-zinc-800 px-6 py-3 flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 bg-orange-500 rounded-xl flex items-center justify-center font-black text-sm">A</div>
+    <div>
+      <p class="text-sm font-bold leading-none">ADH Hardware</p>
+      <p class="text-[10px] text-zinc-500 mt-0.5">Order Management</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <!-- Notification Bell -->
+    <div class="relative">
+      <button onclick="toggleNotifPanel()" class="relative p-2 rounded-full hover:bg-zinc-800 transition-colors" title="Notifications">
+        <svg class="w-5 h-5 text-zinc-300" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-2.83-2h5.66A3 3 0 0110 18z"/>
+        </svg>
+        <span id="notifBadge" class="hidden absolute top-1 right-1 bg-orange-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">0</span>
+      </button>
+      <div id="notifPanel" class="hidden absolute right-0 mt-2 w-80 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+        <div class="px-4 py-3 border-b border-zinc-800 flex justify-between items-center">
+          <span class="text-sm font-bold">Notifications</span>
+          <button onclick="markAllRead()" class="text-xs text-orange-400 hover:text-orange-300">Mark all read</button>
+        </div>
+        <div id="notifList" class="max-h-72 overflow-y-auto">
+          <div class="py-8 text-center text-zinc-500 text-xs">No notifications</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="adminInfo" class="text-right hidden">
+      <p id="adminName" class="text-xs font-semibold text-white"></p>
+      <p class="text-[10px] text-zinc-500">Admin</p>
+    </div>
+    <button onclick="handleLogout()" class="text-xs bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded-lg transition-colors">Logout</button>
+  </div>
+</nav>
+
+<!-- ── Login Modal ────────────────────────────────────────────────────────── -->
+<div id="loginModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+  <div class="bg-zinc-900 rounded-2xl p-6 w-full max-w-sm border border-zinc-800">
+    <div class="text-center mb-6">
+      <div class="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center font-black text-xl mx-auto mb-3">A</div>
+      <h2 class="text-lg font-bold">Admin Login</h2>
+      <p class="text-xs text-zinc-500 mt-1">ADH Hardware Store</p>
+    </div>
+    <div class="space-y-3">
+      <input id="loginPhone" type="tel" placeholder="Phone number" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500 transition-colors"/>
+      <input id="loginPass" type="password" placeholder="Password" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500 transition-colors"/>
+      <p id="loginError" class="text-xs text-red-400 hidden"></p>
+      <button onclick="handleLogin()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl transition-colors text-sm">
+        Login
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Stats Bar ──────────────────────────────────────────────────────────── -->
+<div id="statsBar" class="px-6 py-4 border-b border-zinc-800 bg-zinc-900/50 hidden">
+  <div class="flex gap-3 overflow-x-auto pb-1">
+    <div onclick="filterByStatus('')"       class="stat-btn flex-shrink-0 bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl cursor-pointer transition-colors" data-status="">
+      <p class="text-xs text-zinc-400">All Orders</p>
+      <p id="stat-all" class="text-lg font-black text-white">0</p>
+    </div>
+    <div onclick="filterByStatus('Pending')" class="stat-btn flex-shrink-0 bg-yellow-500/10 hover:bg-yellow-500/20 px-4 py-2 rounded-xl cursor-pointer transition-colors" data-status="Pending">
+      <p class="text-xs text-yellow-400">Pending</p>
+      <p id="stat-Pending" class="text-lg font-black text-yellow-400">0</p>
+    </div>
+    <div onclick="filterByStatus('Assigned')" class="stat-btn flex-shrink-0 bg-blue-500/10 hover:bg-blue-500/20 px-4 py-2 rounded-xl cursor-pointer transition-colors" data-status="Assigned">
+      <p class="text-xs text-blue-400">Assigned</p>
+      <p id="stat-Assigned" class="text-lg font-black text-blue-400">0</p>
+    </div>
+    <div onclick="filterByStatus('Packing')" class="stat-btn flex-shrink-0 bg-purple-500/10 hover:bg-purple-500/20 px-4 py-2 rounded-xl cursor-pointer transition-colors" data-status="Packing">
+      <p class="text-xs text-purple-400">Packing</p>
+      <p id="stat-Packing" class="text-lg font-black text-purple-400">0</p>
+    </div>
+    <div onclick="filterByStatus('Ready For Pickup')" class="stat-btn flex-shrink-0 bg-orange-500/10 hover:bg-orange-500/20 px-4 py-2 rounded-xl cursor-pointer transition-colors" data-status="Ready For Pickup">
+      <p class="text-xs text-orange-400">Ready</p>
+      <p id="stat-Ready" class="text-lg font-black text-orange-400">0</p>
+    </div>
+    <div onclick="filterByStatus('Completed')" class="stat-btn flex-shrink-0 bg-green-500/10 hover:bg-green-500/20 px-4 py-2 rounded-xl cursor-pointer transition-colors" data-status="Completed">
+      <p class="text-xs text-green-400">Completed</p>
+      <p id="stat-Completed" class="text-lg font-black text-green-400">0</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main Content ───────────────────────────────────────────────────────── -->
+<main class="px-4 md:px-6 py-6 max-w-6xl mx-auto">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-base font-bold">Orders</h1>
+      <p id="filterLabel" class="text-xs text-zinc-500 mt-0.5">Showing all orders</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <div id="autoRefreshDot" class="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Auto-refreshing"></div>
+      <span class="text-[10px] text-zinc-500">Live</span>
+      <button onclick="loadOrders()" class="text-xs bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded-lg transition-colors ml-2">↻ Refresh</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingState" class="flex items-center justify-center py-16 hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Empty state -->
+  <div id="emptyState" class="flex flex-col items-center justify-center py-16 text-zinc-500 hidden">
+    <span class="text-4xl mb-2">📋</span>
+    <p class="text-sm">No orders found</p>
+  </div>
+
+  <!-- Orders Grid -->
+  <div id="ordersGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+</main>
+
+<script>
+const API = 'http://localhost:5000/api';
+let token = localStorage.getItem('adh_admin_token');
+let currentAdmin = JSON.parse(localStorage.getItem('adh_admin_user') || 'null');
+let allOrders = [];
+let activeFilter = '';
+let refreshInterval = null;
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+async function handleLogin() {
+  const phone = document.getElementById('loginPhone').value.trim();
+  const pass  = document.getElementById('loginPass').value.trim();
+  const errEl = document.getElementById('loginError');
+  errEl.classList.add('hidden');
+
+  if (!phone || !pass) { errEl.textContent = 'Enter phone and password'; errEl.classList.remove('hidden'); return; }
+
+  try {
+    const r = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, password: pass }),
+    });
+    const data = await r.json();
+    if (!data.success) { errEl.textContent = data.message || 'Login failed'; errEl.classList.remove('hidden'); return; }
+    if (data.user.role !== 'admin') { errEl.textContent = 'Admin access only.'; errEl.classList.remove('hidden'); return; }
+
+    token = data.token;
+    currentAdmin = data.user;
+    localStorage.setItem('adh_admin_token', token);
+    localStorage.setItem('adh_admin_user', JSON.stringify(currentAdmin));
+    initDashboard();
+  } catch (e) {
+    errEl.textContent = 'Server error.'; errEl.classList.remove('hidden');
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem('adh_admin_token');
+  localStorage.removeItem('adh_admin_user');
+  clearInterval(refreshInterval);
+  location.reload();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+function initDashboard() {
+  if (!token || !currentAdmin) { document.getElementById('loginModal').style.display = 'flex'; return; }
+  document.getElementById('loginModal').style.display = 'none';
+  document.getElementById('statsBar').classList.remove('hidden');
+  document.getElementById('adminInfo').classList.remove('hidden');
+  document.getElementById('adminName').textContent = currentAdmin.name;
+  loadOrders();
+  loadNotifications();
+  refreshInterval = setInterval(() => { loadOrders(); loadNotifications(); }, 8000);
+}
+
+// ── Load Orders ───────────────────────────────────────────────────────────────
+async function loadOrders() {
+  try {
+    const r = await fetch(`${API}/admin/orders`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.status === 401) { handleLogout(); return; }
+    const data = await r.json();
+    if (data.success) {
+      allOrders = data.data || [];
+      updateStats();
+      renderOrders();
+    }
+  } catch (e) { console.error('loadOrders:', e); }
+}
+
+function updateStats() {
+  document.getElementById('stat-all').textContent = allOrders.length;
+  ['Pending','Assigned','Packing','Completed'].forEach(s => {
+    const el = document.getElementById(`stat-${s}`);
+    if (el) el.textContent = allOrders.filter(o => o.status === s).length;
+  });
+  const readyEl = document.getElementById('stat-Ready');
+  if (readyEl) readyEl.textContent = allOrders.filter(o => o.status === 'Ready For Pickup').length;
+}
+
+function filterByStatus(status) {
+  activeFilter = status;
+  const label = status || 'all orders';
+  document.getElementById('filterLabel').textContent = `Showing ${label || 'all orders'}`;
+  renderOrders();
+}
+
+function renderOrders() {
+  const grid = document.getElementById('ordersGrid');
+  const loading = document.getElementById('loadingState');
+  const empty = document.getElementById('emptyState');
+
+  const orders = activeFilter
+    ? allOrders.filter(o => o.status === activeFilter)
+    : allOrders;
+
+  loading.classList.add('hidden');
+  if (orders.length === 0) { empty.classList.remove('hidden'); grid.innerHTML = ''; return; }
+  empty.classList.add('hidden');
+
+  grid.innerHTML = orders.map(o => buildOrderCard(o)).join('');
+}
+
+function buildOrderCard(o) {
+  const statusConfig = {
+    'Pending':          { color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', emoji: '⏳' },
+    'Assigned':         { color: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/20',   emoji: '👷' },
+    'Packing':          { color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', emoji: '📦' },
+    'Ready For Pickup': { color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', emoji: '🏪' },
+    'Completed':        { color: 'text-green-400',  bg: 'bg-green-500/10',  border: 'border-green-500/20',  emoji: '✅' },
+    'Cancelled':        { color: 'text-red-400',    bg: 'bg-red-500/10',    border: 'border-red-500/20',    emoji: '❌' },
+  };
+  const sc = statusConfig[o.status] || { color: 'text-zinc-400', bg: 'bg-zinc-800', border: 'border-zinc-700', emoji: '📋' };
+
+  const itemsHtml = (o.items || []).map(i => `
+    <div class="flex items-center justify-between text-xs py-1 border-b border-zinc-800 last:border-0">
+      <span class="text-zinc-300 truncate max-w-[180px]">${escHtml(i.name)}${i.brand ? ` <span class="text-zinc-500">(${escHtml(i.brand)})</span>` : ''}</span>
+      <div class="flex items-center gap-3 flex-shrink-0 ml-2">
+        <span class="text-zinc-500">×${i.quantity}</span>
+        <span class="text-white font-medium">₹${(parseFloat(i.price)*i.quantity).toLocaleString('en-IN')}</span>
+      </div>
+    </div>
+  `).join('');
+
+  // Action buttons based on status
+  let actionBtns = '';
+  const isMyOrder = o.assigned_admin_id === currentAdmin?.id;
+
+  if (o.status === 'Pending') {
+    actionBtns = `<button onclick="assignOrder(${o.id})" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 rounded-xl transition-colors">👷 Take Order</button>`;
+  }
+  if (o.status === 'Assigned' && isMyOrder) {
+    actionBtns = `<button onclick="updateStatus(${o.id}, 'Packing')" class="flex-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-2 rounded-xl transition-colors">📦 Start Packing</button>`;
+  }
+  if (o.status === 'Packing' && isMyOrder) {
+    actionBtns = `<button onclick="updateStatus(${o.id}, 'Ready For Pickup')" class="flex-1 bg-orange-500 hover:bg-orange-400 text-white text-xs font-bold py-2 rounded-xl transition-colors">🏪 Mark Ready</button>`;
+  }
+  if (o.status === 'Ready For Pickup' && isMyOrder) {
+    actionBtns = `<button onclick="updateStatus(${o.id}, 'Completed')" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 rounded-xl transition-colors">✅ Complete Order</button>`;
+  }
+  if (!['Completed','Cancelled'].includes(o.status)) {
+    actionBtns += `<button onclick="cancelOrder(${o.id})" class="px-3 bg-zinc-800 hover:bg-red-900 border border-zinc-700 hover:border-red-700 text-xs font-bold py-2 rounded-xl transition-colors text-zinc-400 hover:text-red-400">Cancel</button>`;
+  }
+
+  const assignedLine = o.assigned_admin_name
+    ? `<div class="flex items-center gap-1 mt-1"><span class="text-[10px] text-zinc-500">👷 ${escHtml(o.assigned_admin_name)}</span></div>`
+    : '';
+
+  const dt = new Date(o.created_at);
+  const dateStr = dt.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+  const timeStr = dt.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+
+  return `
+    <div class="card-enter bg-zinc-900 border ${sc.border} rounded-2xl p-4 flex flex-col gap-3">
+      <!-- Header -->
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-black text-white">#${o.id}</span>
+            <span class="badge ${sc.bg} ${sc.color}">${sc.emoji} ${escHtml(o.status)}</span>
+          </div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">${dateStr} · ${timeStr}</p>
+          ${assignedLine}
+        </div>
+        <div class="text-right">
+          <p class="text-base font-black text-orange-400">₹${parseFloat(o.total_amount).toLocaleString('en-IN')}</p>
+          <p class="text-[10px] text-zinc-500">${o.delivery_type === 'delivery' ? '🚚 Delivery' : '🏪 Pickup'}</p>
+        </div>
+      </div>
+
+      <!-- Customer -->
+      <div class="bg-zinc-800 rounded-xl px-3 py-2.5 space-y-0.5">
+        <p class="text-xs font-semibold text-white">${escHtml(o.customer_name || o.user_name || 'Customer')}</p>
+        <p class="text-xs text-zinc-400">📞 ${escHtml(o.phone || o.user_phone || '—')}</p>
+        <p class="text-xs text-zinc-400 leading-relaxed">📍 ${escHtml(o.address || '—')}${o.landmark ? `, near ${escHtml(o.landmark)}` : ''}</p>
+      </div>
+
+      <!-- Items -->
+      <div class="space-y-0">
+        <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-wide mb-1.5">Items (${(o.items||[]).length})</p>
+        ${itemsHtml}
+      </div>
+
+      <!-- Payment -->
+      <div class="flex items-center justify-between text-xs border-t border-zinc-800 pt-2">
+        <span class="text-zinc-500">Payment: <span class="text-zinc-300 font-medium">${(o.payment_method||'cod').toUpperCase()}</span></span>
+        <span class="text-orange-400 font-bold">Total: ₹${parseFloat(o.total_amount).toLocaleString('en-IN')}</span>
+      </div>
+
+      <!-- Action Buttons -->
+      ${actionBtns ? `<div class="flex gap-2 pt-1">${actionBtns}</div>` : ''}
+    </div>
+  `;
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────
+async function assignOrder(id) {
+  if (!confirm(`Take order #${id}? Other admins won't be able to take it.`)) return;
+  try {
+    const r = await fetch(`${API}/admin/orders/${id}/assign`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await r.json();
+    if (data.success) { showToast('✅ Order assigned to you!', 'green'); loadOrders(); }
+    else { showToast(data.message || 'Failed', 'red'); }
+  } catch (e) { showToast('Server error', 'red'); }
+}
+
+async function updateStatus(id, status) {
+  const labels = { 'Packing': 'start packing', 'Ready For Pickup': 'mark as ready', 'Completed': 'complete' };
+  if (!confirm(`Are you sure you want to ${labels[status] || status} order #${id}?`)) return;
+  try {
+    const r = await fetch(`${API}/admin/orders/${id}/status`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    const data = await r.json();
+    if (data.success) { showToast(`✅ Order marked as ${status}`, 'green'); loadOrders(); }
+    else { showToast(data.message || 'Failed', 'red'); }
+  } catch (e) { showToast('Server error', 'red'); }
+}
+
+async function cancelOrder(id) {
+  if (!confirm(`Cancel order #${id}? This cannot be undone.`)) return;
+  try {
+    const r = await fetch(`${API}/admin/orders/${id}/status`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'Cancelled' }),
+    });
+    const data = await r.json();
+    if (data.success) { showToast('Order cancelled', 'orange'); loadOrders(); }
+    else { showToast(data.message || 'Failed', 'red'); }
+  } catch (e) { showToast('Server error', 'red'); }
+}
+
+// ── Notifications ──────────────────────────────────────────────────────────
+async function loadNotifications() {
+  try {
+    const r = await fetch(`${API}/notifications`, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await r.json();
+    if (!data.success) return;
+
+    const badge = document.getElementById('notifBadge');
+    if (data.unread > 0) {
+      badge.textContent = data.unread > 9 ? '9+' : data.unread;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+
+    const list = document.getElementById('notifList');
+    if (!data.data?.length) { list.innerHTML = '<div class="py-8 text-center text-zinc-500 text-xs">No notifications</div>'; return; }
+
+    list.innerHTML = data.data.map(n => `
+      <div class="px-4 py-3 border-b border-zinc-800 last:border-0 ${!n.is_read ? 'bg-orange-500/5' : ''}">
+        <p class="text-xs font-semibold text-white">${escHtml(n.title)}</p>
+        <p class="text-xs text-zinc-400 mt-0.5 leading-relaxed">${escHtml(n.message)}</p>
+        <p class="text-[10px] text-zinc-600 mt-1">${new Date(n.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</p>
+      </div>
+    `).join('');
+  } catch (e) {}
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  panel.classList.toggle('hidden');
+  if (!panel.classList.contains('hidden')) markAllRead();
+}
+
+async function markAllRead() {
+  try {
+    await fetch(`${API}/notifications/read-all`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    document.getElementById('notifBadge').classList.add('hidden');
+  } catch (e) {}
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function showToast(msg, color = 'green') {
+  const colors = { green: 'bg-green-600', red: 'bg-red-600', orange: 'bg-orange-500' };
+  const toast = document.createElement('div');
+  toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 ${colors[color]||colors.green} text-white text-xs font-semibold px-5 py-2.5 rounded-2xl shadow-lg z-[100] transition-all`;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2500);
+}
+
+// ── Utils ──────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Close notif panel on outside click
+document.addEventListener('click', e => {
+  const panel = document.getElementById('notifPanel');
+  const bell  = panel?.previousElementSibling;
+  if (panel && !panel.contains(e.target) && bell && !bell.contains(e.target)) {
+    panel.classList.add('hidden');
+  }
+});
+
+// Enter key on login
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('loginModal').style.display !== 'none') handleLogin();
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+initDashboard();
+</script>
+</body>
+</html>
